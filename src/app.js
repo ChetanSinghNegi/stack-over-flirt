@@ -4,6 +4,7 @@ const ConnectDB = require("./config/database");
 const User = require("./models/user");
 const port = 3001;
 const app = express();
+
 ConnectDB()
   .then((res) => {
     console.log("Database Connected!!");
@@ -27,7 +28,7 @@ app.get("/get-users", async (req, res) => {
       res.send(users);
     }
   } catch (e) {
-    res.status(400).send("Something Went Wrong!");
+    res.status(400).send("Something Went Wrong!" + err.message);
   }
 });
 
@@ -41,7 +42,7 @@ app.get("/get-user", async (req, res) => {
       res.send(user);
     }
   } catch (e) {
-    res.status(400).send("Something Went Wrong!");
+    res.status(400).send("Something Went Wrong!" + err.message);
   }
 });
 
@@ -51,7 +52,7 @@ app.post("/add-user", async (req, res) => {
     await user.save();
     res.send("User Added Successfully!!");
   } catch (err) {
-    res.status(400).send("Error in Creating User!");
+    res.status(400).send("Error in Creating User! " + err.message);
   }
 });
 
@@ -63,17 +64,34 @@ app.delete("/delete-user", async (req, res) => {
     // await User.findOneAndDelete({ id: userEmailId });
     res.send("User Deleted Successfully");
   } catch (e) {
-    res.status(401).send("Something Went Wrong!");
+    res.status(401).send("Something Went Wrong! " + err.message);
   }
 });
 
-app.patch("/patch-user", async (req, res) => {
+app.patch("/patch-user/:userId", async (req, res) => {
   try {
-    const id = req.body.id;
+    const id = req.params.userId;
     const updateBody = req.body.update;
-    await User.findByIdAndUpdate(id, { ...updateBody });
+    const allowedSet = new Set([
+      "firstName",
+      "lastName",
+      "about",
+      "age",
+      "photoUrl",
+    ]);
+    const isAllowed = Object.keys(updateBody).every((ele) =>
+      allowedSet.has(ele),
+    );
+    if (!isAllowed) {
+      throw new Error("Please Send Appropriate Fields");
+    }
+    await User.findByIdAndUpdate(
+      id,
+      { ...updateBody },
+      { runValidators: true },
+    );
     res.send("User Patched Successfully");
-  } catch (e) {
-    res.status(401).send("Something Went Wrong!");
+  } catch (err) {
+    res.status(401).send("Something Went Wrong! " + err.message);
   }
 });
