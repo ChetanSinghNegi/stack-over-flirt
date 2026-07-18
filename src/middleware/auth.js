@@ -1,17 +1,13 @@
-const authChecker = (req, res, next) => {
-  const token = "xyz";
-  //   const token = "xyfdsafdsz";
-  if (token == "xyz") {
-    console.log("Authentication Successful");
-    next();
-  } else {
-    res.status(401).send("Authentication Failed");
-  }
-};
-const checkUserAuth = (req, res, next) => {
-  // TODO: Add User Authentication Logic
-  console.log("User Authentication Passed");
+const jwt = require("jsonwebtoken");
+const User = require("../models/user");
+const userAuth = async (req, res, next) => {
+  const { token } = req.cookies;
+  if (!token) throw new Error("Invalid Token!");
+  const decodedToken = jwt.verify(token, "TopSecret@123");
+  const user = await User.findById(decodedToken.id);
+  if (!user) throw new Error("User Not Found!");
+  req.user = user;
   next();
 };
 
-module.exports = { authChecker, checkUserAuth };
+module.exports = { userAuth };

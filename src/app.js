@@ -1,9 +1,12 @@
 const express = require("express");
-const { authChecker, checkUserAuth } = require("./middleware/auth");
 const ConnectDB = require("./config/database");
 const User = require("./models/user");
 const valideSignupData = require("./helpers/user-validation");
+const cookieParser = require("cookie-parser");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { userAuth } = require("./middleware/auth");
+
 const port = 3001;
 const app = express();
 
@@ -19,6 +22,7 @@ ConnectDB()
   });
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.get("/get-users", async (req, res) => {
   const userEmailId = req.body.emailId;
@@ -67,11 +71,21 @@ app.get("/login", async (req, res) => {
     if (!user) {
       throw new Error("Invalid Credentials");
     }
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await user.validatePassword(password);
     if (!isValidPassword) {
       throw new Error("Invalid Credentials");
     }
+    const token = user.getJWT();
+    res.cookie("token", token);
     res.send("User LoggedIn Successfully!!");
+  } catch (err) {
+    res.status(400).send(err.message);
+  }
+});
+
+app.get("/profile", userAuth, async (req, res) => {
+  try {
+    res.send(req.user);
   } catch (err) {
     res.status(400).send(err.message);
   }
