@@ -1,27 +1,79 @@
 const express = require("express");
 const { authChecker, checkUserAuth } = require("./middleware/auth");
+const ConnectDB = require("./config/database");
+const User = require("./models/user");
 const port = 3001;
 const app = express();
+ConnectDB()
+  .then((res) => {
+    console.log("Database Connected!!");
+    app.listen(port, () => {
+      console.log(`Server is Listening at Port ${port}`);
+    });
+  })
+  .catch((err) => {
+    console.log("Error Occured");
+  });
 
-app.use("/admin", authChecker);
+app.use(express.json());
 
-app.get("/admin/get-data", (req, res, next) => {
-  res.send("Please have admin's data");
-});
-app.get("/users", checkUserAuth, (req, res) => {
-  res.send("Please have user's data");
-});
-app.get("/error-path", (req, res, next) => {
+app.get("/get-users", async (req, res) => {
+  const userEmailId = req.body.emailId;
   try {
-    throw new Error("Oh! Error Occured 1");
-  } catch (err) {
-    console.log("ERROR OCCURED");
-    res.status(500).send("Something Went Wrong!. Please Contact Support Team.");
+    const users = await User.find({ emailId: userEmailId });
+    if (users.length === 0) {
+      res.status(401).send("User(s) Not Found!");
+    } else {
+      res.send(users);
+    }
+  } catch (e) {
+    res.status(400).send("Something Went Wrong!");
   }
 });
-app.use("/", (err, req, res, next) => {
-  res.status(500).send("Something Went Wrong!. Please Contact Support Team.");
+
+app.get("/get-user", async (req, res) => {
+  const userEmailId = req.body.emailId;
+  try {
+    const user = await User.findOne({ emailId: userEmailId });
+    if (user.length === 0) {
+      res.status(401).send("User Not Found!");
+    } else {
+      res.send(user);
+    }
+  } catch (e) {
+    res.status(400).send("Something Went Wrong!");
+  }
 });
-app.listen(port, () => {
-  console.log(`Server is Listening at Port ${port}`);
+
+app.post("/add-user", async (req, res) => {
+  const user = new User(req.body);
+  try {
+    await user.save();
+    res.send("User Added Successfully!!");
+  } catch (err) {
+    res.status(400).send("Error in Creating User!");
+  }
+});
+
+app.delete("/delete-user", async (req, res) => {
+  try {
+    const id = req.body.id;
+    await User.findOneAndDelete({ _id: id });
+    // const userEmailId = req.body.emailId;
+    // await User.findOneAndDelete({ id: userEmailId });
+    res.send("User Deleted Successfully");
+  } catch (e) {
+    res.status(401).send("Something Went Wrong!");
+  }
+});
+
+app.patch("/patch-user", async (req, res) => {
+  try {
+    const id = req.body.id;
+    const updateBody = req.body.update;
+    await User.findByIdAndUpdate(id, { ...updateBody });
+    res.send("User Patched Successfully");
+  } catch (e) {
+    res.status(401).send("Something Went Wrong!");
+  }
 });
