@@ -27,11 +27,12 @@ requestRouter.post(
       }
 
       //   Checking previous requests
-      const existingConnectionRequest =
-        await ConnectionRequestModel.findOne().or([
+      const existingConnectionRequest = await ConnectionRequestModel.findOne({
+        $or: [
           { toUserId, fromUserId },
           { toUserId: fromUserId, fromUserId: toUserId },
-        ]);
+        ],
+      });
       if (existingConnectionRequest) {
         return res
           .status(400)
