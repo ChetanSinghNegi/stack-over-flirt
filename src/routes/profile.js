@@ -7,26 +7,32 @@ const profileRouter = express.Router();
 
 profileRouter.get("/profile/view", userAuth, async (req, res) => {
   try {
-    res.send(req.user);
+    const user = req.user;
+
+    res.send(user);
   } catch (err) {
-    res.status(400).send(err.message);
+    res.status(400).send("ERROR : " + err.message);
   }
 });
 
 profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
   try {
-    const updateBody = req.body.update;
     if (!validateEditProfileData(req)) {
-      throw new Error("Please Send Appropriate Fields");
+      throw new Error("Invalid Edit Request");
     }
+
     const loggedInUser = req.user;
-    Object.keys(req.body).forEach((field) => {
-      loggedInUser[field] = req.body[field];
+
+    Object.keys(req.body).forEach((key) => (loggedInUser[key] = req.body[key]));
+
+    await loggedInUser.save();
+
+    res.json({
+      message: `${loggedInUser.firstName}, your profile updated successfuly`,
+      data: loggedInUser,
     });
-    loggedInUser.save();
-    res.send("User Patched Successfully");
   } catch (err) {
-    res.status(401).send("Something Went Wrong! " + err.message);
+    res.status(400).send("ERROR : " + err.message);
   }
 });
 

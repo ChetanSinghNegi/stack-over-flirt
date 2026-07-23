@@ -9,15 +9,26 @@ authRouter.post("/signup", async (req, res) => {
   try {
     validateSignupData(req.body);
     const encryptedPassword = await bcrypt.hash(req.body.password, 10);
-    const user = new User({ ...req.body, password: encryptedPassword });
-    await user.save();
-    res.send("User Added Successfully!!");
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: passwordHash,
+    });
+    const savedUser = await user.save();
+    const token = await savedUser.getJWT();
+
+    res.cookie("token", token, {
+      expires: new Date(Date.now() + 8 * 3600000),
+    });
+
+    res.json({ message: "User Added successfully!", data: savedUser });
   } catch (err) {
-    res.status(400).send("Error in Creating User! " + err.message);
+    res.status(400).send("ERROR : " + err.message);
   }
 });
 
-authRouter.get("/login", async (req, res) => {
+authRouter.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
     const user = await User.findOne({ emailId: emailId });
@@ -29,8 +40,10 @@ authRouter.get("/login", async (req, res) => {
       throw new Error("Invalid Credentials");
     }
     const token = user.getJWT();
-    res.cookie("token", token);
-    res.send("User LoggedIn Successfully!!");
+    res.cookie("token", token, {
+      expires: new Date(Date.now() + 8 * 3600000),
+    });
+    res.send(user);
   } catch (err) {
     res.status(400).send(err.message);
   }

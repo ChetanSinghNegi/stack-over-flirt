@@ -3,7 +3,7 @@ const User = require("../models/user");
 const userAuth = async (req, res, next) => {
   try {
     const { token } = req.cookies;
-    if (!token) throw new Error("Invalid Token!");
+    if (!token) return res.status(401).send("Please Login!");
     const decodedToken = jwt.verify(token, "TopSecret@123");
     const user = await User.findById(decodedToken.id);
     if (!user) throw new Error("User Not Found!");
